@@ -3,10 +3,17 @@ package com.wwdablu.soumya.extimageview;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.os.Handler;
+import android.os.Looper;
+import android.support.annotation.CallSuper;
 import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public abstract class BaseExtImageView extends AppCompatImageView {
 
@@ -24,8 +31,14 @@ public abstract class BaseExtImageView extends AppCompatImageView {
         }
     }
 
-    protected Bitmap mDisplayedBitmap;
     private Matrix mMatrix;
+    private boolean mIsDisplayBitmapReady;
+
+    protected Bitmap mDisplayedBitmap;
+    protected ExecutorService mExecutorService;
+    protected Handler mUIHandler;
+
+    public abstract void crop();
 
     public BaseExtImageView(Context context) {
         this(context, null, 0);
@@ -38,10 +51,21 @@ public abstract class BaseExtImageView extends AppCompatImageView {
     public BaseExtImageView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mMatrix = new Matrix();
+        mExecutorService = Executors.newFixedThreadPool(2);
+        mIsDisplayBitmapReady = false;
+        mUIHandler = new Handler(Looper.getMainLooper());
     }
 
     @Override
     public void setImageBitmap(Bitmap bm) {
+
+        //TODO - If this is the first bitmap then save the original
+
+        if(!mIsDisplayBitmapReady) {
+            mDisplayedBitmap = bm;
+            return;
+        }
+
         super.setImageBitmap(bm);
 
         if(bm.equals(mDisplayedBitmap)) {
@@ -51,7 +75,54 @@ public abstract class BaseExtImageView extends AppCompatImageView {
         if(mDisplayedBitmap != null && !mDisplayedBitmap.isRecycled()) {
             mDisplayedBitmap.recycle();
         }
+
         mDisplayedBitmap = bm;
+    }
+
+    /**
+     * Returns a mutable copy of the bitmap that is being displayed on screen to the device. Note,
+     * that the caller has the responsibility to recycle() the bitmap once it has been used.
+     * @return Mutable bitmap that is being displayed to the user.
+     */
+    public final Bitmap getDisplayedBitmap() {
+        return mDisplayedBitmap.copy(mDisplayedBitmap.getConfig(), true);
+    }
+
+    protected final Bitmap getOriginalBitmap() {
+        return null;
+    }
+
+    @Override
+    protected void onFinishInflate() {
+
+        super.onFinishInflate();
+        getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+
+                if(mDisplayedBitmap == null || mDisplayedBitmap.isRecycled()) {
+                    return;
+                }
+
+                getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                Bitmap scaled = scaleToFit(mDisplayedBitmap, getMeasuredWidth(), getMeasuredHeight());
+                mDisplayedBitmap.recycle();
+                mDisplayedBitmap = scaled;
+                mIsDisplayBitmapReady = true;
+                setImageBitmap(mDisplayedBitmap);
+            }
+        });
+    }
+
+    @Override
+    @CallSuper
+    protected void onDetachedFromWindow() {
+
+        if(!mExecutorService.isShutdown()) {
+            mExecutorService.shutdown();
+        }
+
+        super.onDetachedFromWindow();
     }
 
     /**
@@ -85,8 +156,8 @@ public abstract class BaseExtImageView extends AppCompatImageView {
         int originalWidth = bitmap.getWidth();
         int originalHeight = bitmap.getHeight();
 
-        float heightFactor = (float) originalHeight / (float) toWidth;
-        float widthFactor = (float) originalWidth / (float) toHeight;
+        float heightFactor = (float) originalWidth / (float) toWidth;
+        float widthFactor = (float) originalHeight / (float) toHeight;
 
         return (widthFactor >= heightFactor) ? widthFactor : heightFactor;
     }

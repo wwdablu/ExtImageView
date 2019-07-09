@@ -2,11 +2,13 @@ package com.wwdablu.soumya.extimageview.rect;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IntRange;
@@ -168,6 +170,16 @@ public final class ExtRectImageView extends BaseExtImageView {
         mCropMode = cropMode;
     }
 
+    /**
+     * Crop the image or bitmap once the selection is confirmed.
+     */
+    @Override
+    public void crop() {
+
+        mExecutorService.execute(mCropDisplayBitmapRunnable);
+        mExecutorService.execute(mCropOriginalBitmapRunnable);
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
@@ -195,7 +207,6 @@ public final class ExtRectImageView extends BaseExtImageView {
             return;
         }
 
-        //Always clear off the last bitmap before using a new one, cause am a good boy :)
         if(mDisplayedBitmap != null && !mDisplayedBitmap.isRecycled()) {
             canvas.drawBitmap(mDisplayedBitmap, mMatrix, mBitmapPainter);
 
@@ -664,4 +675,40 @@ public final class ExtRectImageView extends BaseExtImageView {
             mFrameRect.bottom -= dBottom;
         }
     }
+
+    private Runnable mCropDisplayBitmapRunnable = new Runnable() {
+        @Override
+        public void run() {
+
+            if(mDisplayedBitmap == null || mDisplayedBitmap.isRecycled()) {
+                return;
+            }
+
+            int iFrameLeft = (int) Math.floor(mFrameRect.left);
+            int iFrameTop = (int) Math.floor(mFrameRect.top);
+            int iFrameRight = (int) Math.floor(mFrameRect.right);
+            int iFrameBottom = (int) Math.floor(mFrameRect.bottom);
+
+            int iFrameWidth = (int) Math.floor(mFrameRect.width());
+            int iFrameHeight = (int) Math.floor(mFrameRect.height());
+
+            Bitmap cropBitmap = Bitmap.createBitmap(iFrameWidth, iFrameHeight, Bitmap.Config.ARGB_8888);
+
+            Canvas canvas = new Canvas(cropBitmap);
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            canvas.drawBitmap(mDisplayedBitmap,
+                new Rect(iFrameLeft, iFrameTop, iFrameRight, iFrameBottom),
+                new Rect(0, 0, iFrameWidth, iFrameHeight),
+                paint);
+
+            mUIHandler.post(() -> setImageBitmap(cropBitmap));
+        }
+    };
+
+    private Runnable mCropOriginalBitmapRunnable = new Runnable() {
+        @Override
+        public void run() {
+            //
+        }
+    };
 }
