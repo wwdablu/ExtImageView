@@ -8,15 +8,17 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Rect;
+import android.graphics.PointF;
 import android.graphics.RectF;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 
 import com.wwdablu.soumya.extimageview.BaseExtImageView;
+import com.wwdablu.soumya.extimageview.Result;
 
 public final class ExtRectImageView extends BaseExtImageView {
 
@@ -174,10 +176,62 @@ public final class ExtRectImageView extends BaseExtImageView {
      * Crop the image or bitmap once the selection is confirmed.
      */
     @Override
-    public void crop() {
+    public void crop(@Nullable Result<Void> result) {
 
-        mExecutorService.execute(mCropDisplayBitmapRunnable);
-        mExecutorService.execute(mCropOriginalBitmapRunnable);
+        getOriginalBitmap(new Result<Bitmap>() {
+            @Override
+            public void onComplete(Bitmap data) {
+                mExecutorService.execute(new OriginalBitmapCropper(data, mDisplayedBitmap, mFrameRect, new Result<Bitmap>() {
+                    @Override
+                    public void onComplete(Bitmap originalCropped) {
+
+                        saveOriginalBitmap(originalCropped, new Result<Void>() {
+                            @Override
+                            public void onComplete(Void data) {
+
+                                mExecutorService.execute(new DisplayBitmapCropper(mDisplayedBitmap, mFrameRect, new Result<Bitmap>() {
+                                    @Override
+                                    public void onComplete(Bitmap data) {
+                                        runOnUiThread(() -> setImageBitmap(data));
+                                        if (result != null) {
+                                            result.onComplete(null);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        if (result != null) {
+                                            result.onError(throwable);
+                                        }
+                                    }
+                                }));
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                if (result != null) {
+                                    result.onError(throwable);
+                                }
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        if (result != null) {
+                            result.onError(throwable);
+                        }
+                    }
+                }, getImageContentStartCoordinate(), getMeasuredWidth(), getMeasuredHeight()));
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                if (result != null) {
+                    result.onError(throwable);
+                }
+            }
+        });
     }
 
     @Override
@@ -208,7 +262,11 @@ public final class ExtRectImageView extends BaseExtImageView {
         }
 
         if(mDisplayedBitmap != null && !mDisplayedBitmap.isRecycled()) {
+
+            PointF coor = getImageContentStartCoordinate();
+
             canvas.drawBitmap(mDisplayedBitmap, mMatrix, mBitmapPainter);
+            canvas.drawBitmap(mDisplayedBitmap, coor.x, coor.y, mBitmapPainter);
 
             /*
              * Renders all the components which are required to select the crop region. It draws the
@@ -342,8 +400,8 @@ public final class ExtRectImageView extends BaseExtImageView {
 
         mImageRect = new RectF(0f, 0f, width, height);
 
-        int hCenter = width / 2;
-        int vCenter = height / 2;
+        int hCenter = width >> 1;
+        int vCenter = height >> 1;
         int smaller = hCenter < vCenter ? hCenter : vCenter;
         mFrameRect = new RectF(smaller >> 1, smaller >> 1, smaller +
                 (smaller >> 1), smaller + (smaller >> 1));
@@ -401,25 +459,31 @@ public final class ExtRectImageView extends BaseExtImageView {
      */
     private void ensureCropBoundsWhileMoving() {
 
+        PointF coor = getImageContentStartCoordinate();
+
         float delta = mFrameRect.left - mImageRect.left;
+        delta -= coor.x;
         if (delta < 0) {
             mFrameRect.left -= delta;
             mFrameRect.right -= delta;
         }
 
         delta = mFrameRect.right - mImageRect.right;
+        delta -= coor.x;
         if (delta > 0) {
             mFrameRect.left -= delta;
             mFrameRect.right -= delta;
         }
 
         delta = mFrameRect.top - mImageRect.top;
+        delta -= coor.y;
         if (delta < 0) {
             mFrameRect.top -= delta;
             mFrameRect.bottom -= delta;
         }
 
         delta = mFrameRect.bottom - mImageRect.bottom;
+        delta += coor.y;
         if (delta > 0) {
             mFrameRect.top -= delta;
             mFrameRect.bottom -= delta;
@@ -657,10 +721,17 @@ public final class ExtRectImageView extends BaseExtImageView {
      */
     private void ensureCropBoundsWhileUsingAnchor() {
 
+        PointF coor = getImageContentStartCoordinate();
+
         float dLeft = (mFrameRect.left - mImageRect.left);
         float dRight = (mFrameRect.right - mImageRect.right);
         float dTop = (mFrameRect.top - mImageRect.top);
         float dBottom = (mFrameRect.bottom - mImageRect.bottom);
+
+        dLeft -= coor.x;
+        dRight -= coor.x;
+        dTop -= coor.y;
+        dBottom += coor.y;
 
         if (dLeft < 0) {
             mFrameRect.left -= dLeft;
@@ -676,39 +747,20 @@ public final class ExtRectImageView extends BaseExtImageView {
         }
     }
 
-    private Runnable mCropDisplayBitmapRunnable = new Runnable() {
-        @Override
-        public void run() {
+    private PointF getImageContentStartCoordinate() {
 
-            if(mDisplayedBitmap == null || mDisplayedBitmap.isRecycled()) {
-                return;
-            }
+        int idWidth = mDisplayedBitmap.getWidth();
+        int idHeight = mDisplayedBitmap.getHeight();
 
-            int iFrameLeft = (int) Math.floor(mFrameRect.left);
-            int iFrameTop = (int) Math.floor(mFrameRect.top);
-            int iFrameRight = (int) Math.floor(mFrameRect.right);
-            int iFrameBottom = (int) Math.floor(mFrameRect.bottom);
+        float left = 0;
+        float top = 0;
 
-            int iFrameWidth = (int) Math.floor(mFrameRect.width());
-            int iFrameHeight = (int) Math.floor(mFrameRect.height());
-
-            Bitmap cropBitmap = Bitmap.createBitmap(iFrameWidth, iFrameHeight, Bitmap.Config.ARGB_8888);
-
-            Canvas canvas = new Canvas(cropBitmap);
-            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            canvas.drawBitmap(mDisplayedBitmap,
-                new Rect(iFrameLeft, iFrameTop, iFrameRight, iFrameBottom),
-                new Rect(0, 0, iFrameWidth, iFrameHeight),
-                paint);
-
-            mUIHandler.post(() -> setImageBitmap(cropBitmap));
+        if(idWidth == getMeasuredWidth()) {
+            top = (getMeasuredHeight() - idHeight) >> 1;
+        } else {
+            left = (getMeasuredWidth() - idWidth) >> 1;
         }
-    };
 
-    private Runnable mCropOriginalBitmapRunnable = new Runnable() {
-        @Override
-        public void run() {
-            //
-        }
-    };
+        return new PointF(0, 0);
+    }
 }

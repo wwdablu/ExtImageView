@@ -6,9 +6,12 @@ import android.graphics.Matrix;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.CallSuper;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 
@@ -32,13 +35,14 @@ public abstract class BaseExtImageView extends AppCompatImageView {
     }
 
     private Matrix mMatrix;
+    private BitmapStorage mStorage;
     private boolean mIsDisplayBitmapReady;
 
     protected Bitmap mDisplayedBitmap;
     protected ExecutorService mExecutorService;
-    protected Handler mUIHandler;
+    private Handler mUIHandler;
 
-    public abstract void crop();
+    public abstract void crop(@Nullable Result<Void> result);
 
     public BaseExtImageView(Context context) {
         this(context, null, 0);
@@ -51,18 +55,20 @@ public abstract class BaseExtImageView extends AppCompatImageView {
     public BaseExtImageView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mMatrix = new Matrix();
-        mExecutorService = Executors.newFixedThreadPool(2);
+        mExecutorService = Executors.newSingleThreadExecutor();
         mIsDisplayBitmapReady = false;
         mUIHandler = new Handler(Looper.getMainLooper());
+        mStorage = new BitmapStorage(context, "uid_" + System.currentTimeMillis());
     }
 
     @Override
     public void setImageBitmap(Bitmap bm) {
 
-        //TODO - If this is the first bitmap then save the original
-
         if(!mIsDisplayBitmapReady) {
             mDisplayedBitmap = bm;
+            if(!mStorage.isOriginalBitmapPresent()) {
+                mStorage.saveOriginalBitmap(mDisplayedBitmap, null);
+            }
             return;
         }
 
@@ -82,17 +88,42 @@ public abstract class BaseExtImageView extends AppCompatImageView {
     /**
      * Returns a mutable copy of the bitmap that is being displayed on screen to the device. Note,
      * that the caller has the responsibility to recycle() the bitmap once it has been used.
-     * @return Mutable bitmap that is being displayed to the user.
+     * @param result Returns the bitmap or the exception generated
      */
-    public final Bitmap getDisplayedBitmap() {
-        return mDisplayedBitmap.copy(mDisplayedBitmap.getConfig(), true);
+    public final void getCroppedBitmap(@NonNull Result<Bitmap> result) {
+
+        if(mStorage == null) {
+            result.onError(new IllegalStateException("Invalid object"));
+            return;
+        }
+
+        mStorage.getOriginalBitmap(result);
     }
 
-    protected final Bitmap getOriginalBitmap() {
-        return null;
+    /**
+     * Rotate the bitmap by the specified option.
+     * @see Rotate
+     * @param by Rotation value
+     */
+    public void rotate(Rotate by) {
+
+        mMatrix.reset();
+        mMatrix.preRotate(by.value);
+
+        setImageBitmap(Bitmap.createBitmap(mDisplayedBitmap, 0, 0, mDisplayedBitmap.getWidth(),
+                mDisplayedBitmap.getHeight(), mMatrix, true));
+    }
+
+    protected final void getOriginalBitmap(@NonNull Result<Bitmap> result) {
+        mStorage.getOriginalBitmap(result);
+    }
+
+    protected final void saveOriginalBitmap(@NonNull Bitmap bitmap, @NonNull Result<Void> result) {
+        mStorage.saveOriginalBitmap(bitmap, result);
     }
 
     @Override
+    @CallSuper
     protected void onFinishInflate() {
 
         super.onFinishInflate();
@@ -100,7 +131,7 @@ public abstract class BaseExtImageView extends AppCompatImageView {
             @Override
             public void onGlobalLayout() {
 
-                if(mDisplayedBitmap == null || mDisplayedBitmap.isRecycled()) {
+                if(mDisplayedBitmap == null || mDisplayedBitmap.isRecycled() || getVisibility() == View.GONE) {
                     return;
                 }
 
@@ -119,27 +150,18 @@ public abstract class BaseExtImageView extends AppCompatImageView {
     protected void onDetachedFromWindow() {
 
         if(!mExecutorService.isShutdown()) {
-            mExecutorService.shutdown();
+            mExecutorService.shutdownNow();
         }
 
+        mStorage.deleteOriginalBitmap();
         super.onDetachedFromWindow();
     }
 
-    /**
-     * Rotate the bitmap by the specified option.
-     * @see Rotate
-     * @param by Rotation value
-     */
-    public void rotate(Rotate by) {
-
-        mMatrix.reset();
-        mMatrix.preRotate(by.value);
-
-        setImageBitmap(Bitmap.createBitmap(mDisplayedBitmap, 0, 0, mDisplayedBitmap.getWidth(),
-                mDisplayedBitmap.getHeight(), mMatrix, true));
+    protected final void runOnUiThread(@NonNull Runnable runnable) {
+        mUIHandler.post(runnable);
     }
 
-    protected final Bitmap scaleToFit(Bitmap bitmap, int toWidth, int toHeight) {
+    public final Bitmap scaleToFit(Bitmap bitmap, int toWidth, int toHeight) {
 
         int originalWidth = bitmap.getWidth();
         int originalHeight = bitmap.getHeight();

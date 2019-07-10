@@ -5,18 +5,11 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextureView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/texv_camera"
-        android:layout_alignParentTop="true"
-        android:layout_above="@id/btn_capture"
-        />
-
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/btn_capture"
+        android:text="@string/crop"
         android:layout_alignParentBottom="true"
         />
 
@@ -24,6 +17,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/iv_display"
+        android:layout_above="@id/btn_capture"
+        android:layout_alignParentTop="true"
+        />
+
+    <android.support.v7.widget.AppCompatImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/iv_display_cropped"
         android:layout_above="@id/btn_capture"
         android:visibility="gone"
         android:layout_alignParentTop="true"
