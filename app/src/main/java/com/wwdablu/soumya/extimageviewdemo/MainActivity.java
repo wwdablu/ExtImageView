@@ -3,24 +3,19 @@ package com.wwdablu.soumya.extimageviewdemo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.hardware.camera2.CameraDevice;
-import android.media.Image;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatImageView;
 import android.view.View;
+import android.widget.Toast;
 
-import com.wwdablu.soumya.cam2lib.Cam2Lib;
-import com.wwdablu.soumya.cam2lib.Cam2LibCallback;
-import com.wwdablu.soumya.extimageview.BaseExtImageView;
+import com.wwdablu.soumya.extimageview.Result;
 import com.wwdablu.soumya.extimageview.rect.CropMode;
 import com.wwdablu.soumya.extimageview.rect.ExtRectImageView;
 import com.wwdablu.soumya.extimageview.rect.GridMode;
 
-import java.nio.ByteBuffer;
+public class MainActivity extends AppCompatActivity {
 
-public class MainActivity extends AppCompatActivity implements Cam2LibCallback {
-
-    private Cam2Lib cam2Lib;
     private ExtRectImageView extRectImageView;
 
     @Override
@@ -33,50 +28,55 @@ public class MainActivity extends AppCompatActivity implements Cam2LibCallback {
         extRectImageView.setGridVisibility(GridMode.ALWAYS);
         extRectImageView.setCropMode(CropMode.RECT);
 
-        cam2Lib = new Cam2Lib(this, this);
-        cam2Lib.open(findViewById(R.id.texv_camera), CameraDevice.TEMPLATE_PREVIEW);
-
-        findViewById(R.id.btn_capture).setOnClickListener(v -> cam2Lib.getImage());
-    }
-
-    @Override
-    public void onReady() {
-        cam2Lib.startPreview();
-    }
-
-    @Override
-    public void onComplete() {
-        findViewById(R.id.texv_camera).setVisibility(View.GONE);
-        findViewById(R.id.btn_capture).setVisibility(View.GONE);
-        findViewById(R.id.iv_display).setVisibility(View.VISIBLE);
-    }
-
-    @Override
-    public void onImage(Image image) {
-
-        int iw = image.getWidth();
-        int ih = image.getHeight();
-
-        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-        byte[] bytes = new byte[buffer.remaining()];
-        buffer.get(bytes);
-
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inScaled = false;
         options.inDensity = 0;
         options.inTargetDensity = 0;
-        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.length,null);
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sample);
 
         ((ExtRectImageView) findViewById(R.id.iv_display)).setImageBitmap(bitmap);
-        ((ExtRectImageView) findViewById(R.id.iv_display)).rotate(BaseExtImageView.Rotate.CW_90);
 
-        cam2Lib.stopPreview();
-        cam2Lib.close();
-    }
+        findViewById(R.id.btn_capture).setOnClickListener(v -> {
+            extRectImageView.crop(new Result<Void>() {
+                @Override
+                public void onComplete(Void data) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this,
+                                "Crop completed", Toast.LENGTH_SHORT).show();
 
-    @Override
-    public void onError(Throwable throwable) {
-        cam2Lib.stopPreview();
-        cam2Lib.close();
+                        findViewById(R.id.iv_display).setVisibility(View.GONE);
+                        findViewById(R.id.iv_display_cropped).setVisibility(View.VISIBLE);
+
+                        extRectImageView.getCroppedBitmap(new Result<Bitmap>() {
+                            @Override
+                            public void onComplete(Bitmap data) {
+                                runOnUiThread(() -> {
+
+                                    Bitmap d = extRectImageView.scaleToFit(data, extRectImageView
+                                            .getMeasuredWidth(), extRectImageView.getMeasuredHeight());
+
+                                    data.recycle();
+                                    ((AppCompatImageView) findViewById(R.id.iv_display_cropped))
+                                            .setImageBitmap(d);
+                                });
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                                        "Could not get cropped bitmap" + throwable.getMessage(),
+                                        Toast.LENGTH_SHORT).show());
+                            }
+                        });
+                    });
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                            "Crop failed" + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+                }
+            });
+        });
     }
 }
