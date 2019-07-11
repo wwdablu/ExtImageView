@@ -27,8 +27,8 @@ public class MainActivity extends AppCompatActivity {
 
         btn = findViewById(R.id.btn_capture);
 
-        //demoRect();
-        demoFree();
+        demoRect();
+        //demoFree();
     }
 
     private void demoFree() {
