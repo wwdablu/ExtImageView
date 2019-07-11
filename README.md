@@ -1,3 +1,5 @@
+[![](https://jitpack.io/v/wwdablu/ExtImageView.svg)](https://jitpack.io/#wwdablu/ExtImageView)  
+
 # ExtImageView
 Android library allowing cropping of images while displaying them to the user. It allows two (2) forms of cropping:  
 * Defined (Rectangle)  
