@@ -5,7 +5,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
@@ -46,8 +45,6 @@ public final class ExtRectImageView extends BaseExtImageView {
     private Paint mBitmapPainter;
     private Paint mGridPainter;
     private Paint mAnchorPainter;
-
-    private Matrix mMatrix;
 
     private RectF mFrameRect;
     private RectF mImageRect;
@@ -100,8 +97,6 @@ public final class ExtRectImageView extends BaseExtImageView {
         mTranslucentPainter.setStyle(Paint.Style.FILL);
 
         mBitmapPainter = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-        mMatrix = new Matrix();
 
         mCropRegionPath = new Path();
 
@@ -264,8 +259,6 @@ public final class ExtRectImageView extends BaseExtImageView {
         if(mDisplayedBitmap != null && !mDisplayedBitmap.isRecycled()) {
 
             PointF coor = getImageContentStartCoordinate();
-
-            //canvas.drawBitmap(mDisplayedBitmap, mMatrix, mBitmapPainter);
             canvas.drawBitmap(mDisplayedBitmap, coor.x, coor.y, mBitmapPainter);
 
             /*
@@ -321,17 +314,6 @@ public final class ExtRectImageView extends BaseExtImageView {
         }
 
         return super.onTouchEvent(event);
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-
-        if(mDisplayedBitmap != null && !mDisplayedBitmap.isRecycled()) {
-            mDisplayedBitmap.recycle();
-            mDisplayedBitmap = null;
-        }
-
-        super.onDetachedFromWindow();
     }
 
     /*
@@ -747,22 +729,5 @@ public final class ExtRectImageView extends BaseExtImageView {
         if (dBottom > 0) {
             mFrameRect.bottom -= dBottom;
         }
-    }
-
-    private PointF getImageContentStartCoordinate() {
-
-        int idWidth = mDisplayedBitmap.getWidth();
-        int idHeight = mDisplayedBitmap.getHeight();
-
-        float left = 0;
-        float top = 0;
-
-        if(idWidth == getMeasuredWidth()) {
-            top = (getMeasuredHeight() - idHeight) >> 1;
-        } else {
-            left = (getMeasuredWidth() - idWidth) >> 1;
-        }
-
-        return new PointF(left, top);
     }
 }

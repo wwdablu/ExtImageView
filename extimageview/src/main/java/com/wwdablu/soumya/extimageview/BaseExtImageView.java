@@ -3,6 +3,7 @@ package com.wwdablu.soumya.extimageview;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.graphics.PointF;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.CallSuper;
@@ -153,6 +154,11 @@ public abstract class BaseExtImageView extends AppCompatImageView {
             mExecutorService.shutdownNow();
         }
 
+        if(mDisplayedBitmap != null && !mDisplayedBitmap.isRecycled()) {
+            mDisplayedBitmap.recycle();
+            mDisplayedBitmap = null;
+        }
+
         mStorage.deleteOriginalBitmap();
         super.onDetachedFromWindow();
     }
@@ -189,5 +195,22 @@ public abstract class BaseExtImageView extends AppCompatImageView {
         ((WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay()
                 .getMetrics(displayMetrics);
         return displayMetrics.density;
+    }
+
+    protected final PointF getImageContentStartCoordinate() {
+
+        int idWidth = mDisplayedBitmap.getWidth();
+        int idHeight = mDisplayedBitmap.getHeight();
+
+        float left = 0;
+        float top = 0;
+
+        if(idWidth == getMeasuredWidth()) {
+            top = (getMeasuredHeight() - idHeight) >> 1;
+        } else {
+            left = (getMeasuredWidth() - idWidth) >> 1;
+        }
+
+        return new PointF(left, top);
     }
 }
