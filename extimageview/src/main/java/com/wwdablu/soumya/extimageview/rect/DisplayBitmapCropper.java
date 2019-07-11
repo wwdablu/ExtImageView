@@ -24,26 +24,32 @@ final class DisplayBitmapCropper implements Runnable {
     public void run() {
 
         if(mDisplayedBitmap == null || mDisplayedBitmap.isRecycled()) {
+            mResult.onComplete(null);
             return;
         }
 
-        int iFrameLeft = (int) Math.floor(mFrameRect.left);
-        int iFrameTop = (int) Math.floor(mFrameRect.top);
-        int iFrameRight = (int) Math.floor(mFrameRect.right);
-        int iFrameBottom = (int) Math.floor(mFrameRect.bottom);
+        try {
+            int iFrameLeft = (int) Math.floor(mFrameRect.left);
+            int iFrameTop = (int) Math.floor(mFrameRect.top);
+            int iFrameRight = (int) Math.floor(mFrameRect.right);
+            int iFrameBottom = (int) Math.floor(mFrameRect.bottom);
 
-        int iFrameWidth = (int) Math.floor(mFrameRect.width());
-        int iFrameHeight = (int) Math.floor(mFrameRect.height());
+            int iFrameWidth = (int) Math.floor(mFrameRect.width());
+            int iFrameHeight = (int) Math.floor(mFrameRect.height());
 
-        Bitmap cropBitmap = Bitmap.createBitmap(iFrameWidth, iFrameHeight, Bitmap.Config.ARGB_8888);
+            Bitmap cropBitmap = Bitmap.createBitmap(iFrameWidth, iFrameHeight, Bitmap.Config.ARGB_8888);
 
-        Canvas canvas = new Canvas(cropBitmap);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        canvas.drawBitmap(mDisplayedBitmap,
-                new Rect(iFrameLeft, iFrameTop, iFrameRight, iFrameBottom),
-                new Rect(0, 0, iFrameWidth, iFrameHeight),
-                paint);
+            Canvas canvas = new Canvas(cropBitmap);
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            canvas.drawBitmap(mDisplayedBitmap,
+                    new Rect(iFrameLeft, iFrameTop, iFrameRight, iFrameBottom),
+                    new Rect(0, 0, iFrameWidth, iFrameHeight),
+                    paint);
 
-        mResult.onComplete(cropBitmap);
+            mResult.onComplete(cropBitmap);
+
+        } catch (Exception ex) {
+            mResult.onError(ex);
+        }
     }
 }

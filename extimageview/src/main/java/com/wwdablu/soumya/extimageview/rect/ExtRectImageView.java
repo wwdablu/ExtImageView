@@ -222,7 +222,7 @@ public final class ExtRectImageView extends BaseExtImageView {
                             result.onError(throwable);
                         }
                     }
-                }, getImageContentStartCoordinate(), getMeasuredWidth(), getMeasuredHeight()));
+                }, getImageContentStartCoordinate()));
             }
 
             @Override
@@ -265,7 +265,7 @@ public final class ExtRectImageView extends BaseExtImageView {
 
             PointF coor = getImageContentStartCoordinate();
 
-            canvas.drawBitmap(mDisplayedBitmap, mMatrix, mBitmapPainter);
+            //canvas.drawBitmap(mDisplayedBitmap, mMatrix, mBitmapPainter);
             canvas.drawBitmap(mDisplayedBitmap, coor.x, coor.y, mBitmapPainter);
 
             /*
@@ -398,13 +398,15 @@ public final class ExtRectImageView extends BaseExtImageView {
             return;
         }
 
+        PointF point = getImageContentStartCoordinate();
+
         mImageRect = new RectF(0f, 0f, width, height);
 
         int hCenter = width >> 1;
         int vCenter = height >> 1;
         int smaller = hCenter < vCenter ? hCenter : vCenter;
-        mFrameRect = new RectF(smaller >> 1, smaller >> 1, smaller +
-                (smaller >> 1), smaller + (smaller >> 1));
+        mFrameRect = new RectF(smaller >> 1, (smaller >> 1) + ((int)point.y >> 1), smaller +
+                (smaller >> 1), smaller + (smaller >> 1) + ((int)point.y >> 1));
 
         mIsReady = true;
         invalidate();
@@ -761,6 +763,6 @@ public final class ExtRectImageView extends BaseExtImageView {
             left = (getMeasuredWidth() - idWidth) >> 1;
         }
 
-        return new PointF(0, 0);
+        return new PointF(left, top);
     }
 }

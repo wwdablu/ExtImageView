@@ -17,7 +17,7 @@ final class BitmapStorage {
     private ReentrantLock mGuard;
 
     BitmapStorage(@NonNull Context context, @NonNull String id) {
-        mOriginalFile = new File(context.getFilesDir(), id + "_" + "o.png");
+        mOriginalFile = new File(context.getCacheDir(), id + "_" + "o.png");
         mGuard = new ReentrantLock();
     }
 
