@@ -74,4 +74,8 @@ extFreeImageView.getCroppedBitmap(new Result<Bitmap>() {
 ```  
 
 ## Note  
-It creates temporary bitmap files in the cache folder for the crop process. Once the view is detached from the window, these files are removed. This is done automatically. But if the app crashes or in any other scenario detach is not called then these files will linger. If you want you can explicitly remove files from the cache folder with the name ending with _o.png. 
+It creates temporary bitmap files in the cache folder for the crop process. Once the view is detached from the window, these files are removed. This is done automatically. But if the app crashes or in any other scenario detach is not called then these files will linger. If you want you can explicitly remove files from the cache folder with the name ending with _o.png.  
+
+## Sample  
+The GIF starts after ~5 seconds as I was running it from Studio. Also it shows both the crop modes.  
+![](/demo/ext_demo.gif)
