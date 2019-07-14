@@ -12,6 +12,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
@@ -20,6 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public abstract class BaseExtImageView extends AppCompatImageView {
+
+    protected static final String TAG = "ExtImageView";
 
     public enum Rotate {
         CW_90(90),
@@ -40,6 +43,7 @@ public abstract class BaseExtImageView extends AppCompatImageView {
     private boolean mIsDisplayBitmapReady;
 
     protected Bitmap mDisplayedBitmap;
+
     protected ExecutorService mExecutorService;
     private Handler mUIHandler;
 
@@ -105,14 +109,10 @@ public abstract class BaseExtImageView extends AppCompatImageView {
      * Rotate the bitmap by the specified option.
      * @see Rotate
      * @param by Rotation value
+     * @param result Notified when rotate is completed
      */
-    public void rotate(Rotate by) {
-
-        mMatrix.reset();
-        mMatrix.preRotate(by.value);
-
-        setImageBitmap(Bitmap.createBitmap(mDisplayedBitmap, 0, 0, mDisplayedBitmap.getWidth(),
-                mDisplayedBitmap.getHeight(), mMatrix, true));
+    public void rotate(Rotate by, @NonNull Result<Void> result) {
+        saveOriginalBitmapRotation(by, result);
     }
 
     protected final void getOriginalBitmap(@NonNull Result<Bitmap> result) {
@@ -212,5 +212,55 @@ public abstract class BaseExtImageView extends AppCompatImageView {
         }
 
         return new PointF(left, top);
+    }
+
+    private void saveOriginalBitmapRotation(Rotate by, Result<Void> result) {
+
+        mStorage.getOriginalBitmap(new Result<Bitmap>() {
+            @Override
+            public void onComplete(Bitmap bitmap) {
+                mExecutorService.execute(() -> {
+                    try {
+                        if(bitmap == null) {
+                            return;
+                        }
+
+                        mMatrix.reset();
+                        mMatrix.preRotate(by.value);
+
+                        Bitmap originalRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+                                bitmap.getHeight(), mMatrix, true);
+
+                        bitmap.recycle();
+
+                        mStorage.saveOriginalBitmap(originalRotated, new Result<Void>() {
+                            @Override
+                            public void onComplete(Void data) {
+
+                                Bitmap bm = scaleToFit(originalRotated, getMeasuredWidth(), getMeasuredHeight());
+                                runOnUiThread(() -> setImageBitmap(bm));
+                                result.onComplete(null);
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                Log.e(TAG, "Rotation failed internally. Output may be incorrect.");
+                                result.onError(throwable);
+                            }
+                        });
+
+                    } catch (Exception ex) {
+                        Log.e(TAG, "Rotation failed internally. Output may be incorrect.");
+                        result.onError(ex);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                Log.e(TAG, "Could not retrieve the image. " + throwable.getMessage());
+                result.onError(throwable);
+            }
+        });
     }
 }

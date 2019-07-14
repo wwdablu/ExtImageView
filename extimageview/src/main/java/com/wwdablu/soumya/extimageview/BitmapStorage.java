@@ -17,7 +17,7 @@ final class BitmapStorage {
     private ReentrantLock mGuard;
 
     BitmapStorage(@NonNull Context context, @NonNull String id) {
-        mOriginalFile = new File(context.getCacheDir(), id + "_" + "o.png");
+        mOriginalFile = new File(context.getCacheDir(), id + "_" + "o.jpg");
         mGuard = new ReentrantLock();
     }
 
@@ -28,7 +28,8 @@ final class BitmapStorage {
             mGuard.lock();
             try (FileOutputStream fos = new FileOutputStream(mOriginalFile)) {
 
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                /* Switched from PNG to JPEG as PNG compression takes long time */
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
                 if(result != null) {
                     result.onComplete(null);
                 }

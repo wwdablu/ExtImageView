@@ -4,12 +4,14 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatImageView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.wwdablu.soumya.extimageview.BaseExtImageView;
 import com.wwdablu.soumya.extimageview.Result;
 import com.wwdablu.soumya.extimageview.free.ExtFreeImageView;
 import com.wwdablu.soumya.extimageview.rect.CropMode;
@@ -101,6 +103,17 @@ public class MainActivity extends AppCompatActivity {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sample);
 
         extRectImageView.setImageBitmap(bitmap);
+        extRectImageView.rotate(BaseExtImageView.Rotate.CW_90, new Result<Void>() {
+            @Override
+            public void onComplete(Void data) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Rotation completed.", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Rotation failed. " + throwable.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
 
         findViewById(R.id.btn_capture).setOnClickListener(v -> extRectImageView.crop(new Result<Void>() {
             @Override
