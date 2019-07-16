@@ -49,9 +49,21 @@ public class MainActivity extends AppCompatActivity {
         options.inScaled = false;
         options.inDensity = 0;
         options.inTargetDensity = 0;
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sample);
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sample_1);
 
         extTrapezImageView.setImageBitmap(bitmap);
+
+        findViewById(R.id.btn_capture).setOnClickListener(v -> extTrapezImageView.crop(new Result<Void>() {
+            @Override
+            public void onComplete(Void data) {
+
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+        }));
     }
 
     private void demoFree() {

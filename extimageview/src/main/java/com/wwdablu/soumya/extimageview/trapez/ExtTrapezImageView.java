@@ -1,6 +1,7 @@
 package com.wwdablu.soumya.extimageview.trapez;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -72,7 +73,22 @@ public class ExtTrapezImageView extends BaseExtImageView {
 
     @Override
     public void crop(@Nullable Result<Void> result) {
-        //
+        mExecutorService.execute(new DisplayBitmapCropper(mDisplayedBitmap, mAnchorPoints, new Result<Bitmap>() {
+            @Override
+            public void onComplete(Bitmap data) {
+                runOnUiThread(() -> setImageBitmap(data));
+                if (result != null) {
+                    result.onComplete(null);
+                }
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                if (result != null) {
+                    result.onError(throwable);
+                }
+            }
+        }, getImageContentStartCoordinate()));
     }
 
     @Override
