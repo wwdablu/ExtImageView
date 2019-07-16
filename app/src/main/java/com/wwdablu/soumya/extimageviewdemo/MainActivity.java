@@ -17,6 +17,7 @@ import com.wwdablu.soumya.extimageview.free.ExtFreeImageView;
 import com.wwdablu.soumya.extimageview.rect.CropMode;
 import com.wwdablu.soumya.extimageview.rect.ExtRectImageView;
 import com.wwdablu.soumya.extimageview.rect.GridMode;
+import com.wwdablu.soumya.extimageview.trapez.ExtTrapezImageView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,8 +30,40 @@ public class MainActivity extends AppCompatActivity {
 
         btn = findViewById(R.id.btn_capture);
 
-        demoRect();
+        //demoRect();
+        demoTrapez();
         //demoFree();
+    }
+
+    private void demoTrapez() {
+
+        btn.setText("Crop Trapez");
+
+        findViewById(R.id.iv_display).setVisibility(View.GONE);
+        findViewById(R.id.iv_display_free).setVisibility(View.GONE);
+        findViewById(R.id.iv_display_trapez).setVisibility(View.VISIBLE);
+
+        final ExtTrapezImageView extTrapezImageView = findViewById(R.id.iv_display_trapez);
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+        options.inDensity = 0;
+        options.inTargetDensity = 0;
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sample_1);
+
+        extTrapezImageView.setImageBitmap(bitmap);
+
+        findViewById(R.id.btn_capture).setOnClickListener(v -> extTrapezImageView.crop(new Result<Void>() {
+            @Override
+            public void onComplete(Void data) {
+
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+
+            }
+        }));
     }
 
     private void demoFree() {
@@ -39,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.iv_display).setVisibility(View.GONE);
         findViewById(R.id.iv_display_free).setVisibility(View.VISIBLE);
+        findViewById(R.id.iv_display_trapez).setVisibility(View.GONE);
 
         final ExtFreeImageView extFreeImageView = findViewById(R.id.iv_display_free);
 
@@ -89,7 +123,9 @@ public class MainActivity extends AppCompatActivity {
 
         btn.setText("Crop Defined");
 
+        findViewById(R.id.iv_display).setVisibility(View.VISIBLE);
         findViewById(R.id.iv_display_free).setVisibility(View.GONE);
+        findViewById(R.id.iv_display_trapez).setVisibility(View.GONE);
 
         final ExtRectImageView extRectImageView = findViewById(R.id.iv_display);
         extRectImageView.setGridColor(Color.GREEN);

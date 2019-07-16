@@ -5,7 +5,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
@@ -19,7 +18,7 @@ import java.util.List;
 
 final class OriginalBitmapCropper implements Runnable {
 
-    static final int GREEN_SCREEN = Color.parseColor("#00b140");
+    private static final int GREEN_SCREEN = Color.parseColor("#00b140");
 
     private Result<Bitmap> mResult;
     private Bitmap mOriginalBitmap;

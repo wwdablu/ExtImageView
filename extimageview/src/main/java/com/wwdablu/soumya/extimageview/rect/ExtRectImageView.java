@@ -21,8 +21,6 @@ import com.wwdablu.soumya.extimageview.Result;
 
 public final class ExtRectImageView extends BaseExtImageView {
 
-    private final String TAG = ExtRectImageView.class.getSimpleName();
-
     private TouchItem mTouchItem;
     private GridMode mGridMode;
     private CropMode mCropMode;
