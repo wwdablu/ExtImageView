@@ -73,13 +73,51 @@ public class ExtTrapezImageView extends BaseExtImageView {
 
     @Override
     public void crop(@Nullable Result<Void> result) {
-        mExecutorService.execute(new DisplayBitmapCropper(mDisplayedBitmap, mAnchorPoints, new Result<Bitmap>() {
+
+        getOriginalBitmap(new Result<Bitmap>() {
             @Override
             public void onComplete(Bitmap data) {
-                runOnUiThread(() -> setImageBitmap(data));
-                if (result != null) {
-                    result.onComplete(null);
-                }
+                mExecutorService.execute(new OriginalBitmapCropper(data, mDisplayedBitmap, mAnchorPoints, new Result<Bitmap>() {
+                    @Override
+                    public void onComplete(Bitmap transformedOriginal) {
+                        saveOriginalBitmap(transformedOriginal, new Result<Void>() {
+                            @Override
+                            public void onComplete(Void data) {
+                                transformedOriginal.recycle();
+                                mExecutorService.execute(new DisplayBitmapCropper(mDisplayedBitmap, mAnchorPoints, new Result<Bitmap>() {
+                                    @Override
+                                    public void onComplete(Bitmap data) {
+                                        runOnUiThread(() -> setImageBitmap(data));
+                                        if (result != null) {
+                                            result.onComplete(null);
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable throwable) {
+                                        if (result != null) {
+                                            result.onError(throwable);
+                                        }
+                                    }
+                                }, getImageContentStartCoordinate()));
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                if (result != null) {
+                                    result.onError(throwable);
+                                }
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        if (result != null) {
+                            result.onError(throwable);
+                        }
+                    }
+                }, getImageContentStartCoordinate()));
             }
 
             @Override
@@ -88,7 +126,7 @@ public class ExtTrapezImageView extends BaseExtImageView {
                     result.onError(throwable);
                 }
             }
-        }, getImageContentStartCoordinate()));
+        });
     }
 
     @Override
