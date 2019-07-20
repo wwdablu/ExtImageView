@@ -30,9 +30,21 @@ public class MainActivity extends AppCompatActivity {
 
         btn = findViewById(R.id.btn_capture);
 
-        //demoRect();
-        demoTrapez();
-        //demoFree();
+        String mode = getIntent().getStringExtra("mode");
+
+        switch (mode) {
+            case "rect":
+                demoRect();
+                break;
+
+            case "free":
+                demoFree();
+                break;
+
+            case "trapez":
+                demoTrapez();
+                break;
+        }
     }
 
     private void demoTrapez() {
@@ -56,7 +68,26 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_capture).setOnClickListener(v -> extTrapezImageView.crop(new Result<Void>() {
             @Override
             public void onComplete(Void data) {
+                extTrapezImageView.getCroppedBitmap(new Result<Bitmap>() {
+                    @Override
+                    public void onComplete(Bitmap data) {
+                        runOnUiThread(() -> {
 
+                            findViewById(R.id.iv_display_trapez).setVisibility(View.GONE);
+                            findViewById(R.id.iv_display_cropped).setVisibility(View.VISIBLE);
+
+                            ((AppCompatImageView) findViewById(R.id.iv_display_cropped))
+                                    .setImageBitmap(data);
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                                "Could not get cropped bitmap" + throwable.getMessage(),
+                                Toast.LENGTH_SHORT).show());
+                    }
+                });
             }
 
             @Override
@@ -137,6 +168,8 @@ public class MainActivity extends AppCompatActivity {
         options.inDensity = 0;
         options.inTargetDensity = 0;
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.sample);
+
+        Toast.makeText(MainActivity.this, "Rotating image.", Toast.LENGTH_SHORT).show();
 
         extRectImageView.setImageBitmap(bitmap);
         extRectImageView.rotate(BaseExtImageView.Rotate.CW_90, new Result<Void>() {
