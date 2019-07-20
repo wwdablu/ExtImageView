@@ -1,9 +1,10 @@
 [![](https://jitpack.io/v/wwdablu/ExtImageView.svg)](https://jitpack.io/#wwdablu/ExtImageView)  
 
 # ExtImageView
-Android library allowing cropping of images while displaying them to the user. It allows two (2) forms of cropping:  
+Android library allowing cropping of images while displaying them to the user. It allows three (3) forms of cropping:  
 * Defined (Rectangle)  
 * Freeform (any custom shape)  
+* Trapezoid (for trapezoid to rect cropping)
 
 ## Gradle  
 ```  
@@ -33,6 +34,14 @@ You can define it in XML as follows:
     android:id="@+id/iv_display_free"
     />
 ```  
+* Trapezoid  
+```  
+<com.wwdablu.soumya.extimageview.trapez.ExtTrapezImageView
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/iv_capture_preview"
+    />
+```
 
 Once the layout has been inflated we need to pass the actual bitmap which will be used for cropping. For example:  
 ```
@@ -79,5 +88,4 @@ extFreeImageView.getCroppedBitmap(new Result<Bitmap>() {
 It creates temporary bitmap files in the cache folder for the crop process. Once the view is detached from the window, these files are removed. This is done automatically. But if the app crashes or in any other scenario detach is not called then these files will linger. If you want you can explicitly remove files from the cache folder with the name ending with _o.png.  
 
 ## Sample  
-The GIF starts after ~5 seconds as I was running it from Studio. Also it shows both the crop modes.  
-![](/demo/ext_demo.gif)
+![](/demo/ext_demo_2.gif)
